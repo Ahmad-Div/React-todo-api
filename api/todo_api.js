@@ -45,6 +45,35 @@ todoApp.get("/get/me", auth, async (req, res) => {
   }
 });
 
+//GET SELF collections
+//@access private
+
+//get one todo of a collection
+todoApp.get("/get/me/collections", auth, async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ user: req.user.id });
+    const collections = todo.collections;
+    res.status(200).json(collections);
+  } catch (error) {
+    return res.status(500).json({ error: error });
+  }
+});
+
+//GET SELF TODO
+//@access private
+
+//get one todo of a collection
+todoApp.get("/get/me/:collection_id", auth, async (req, res) => {
+  try {
+    const todo = await Todo.findOne({ user: req.user.id });
+    const collections = todo.collections;
+    const theTodo = collections.find((collection) => collection._id.toString() === req.params.collection_id);
+    res.status(200).json(theTodo);
+  } catch (error) {
+    return res.status(500).json({ error: error });
+  }
+});
+
 //POST NEW COLLECTION
 //@access private
 
@@ -63,7 +92,8 @@ todoApp.post("/collection/:id", authOwner, async (req, res) => {
       name: req.body.name,
     });
     await todo.save();
-    res.status(200).json(todo);
+    const newCollection = collections.find((collection) => collection.name === req.body.name);
+    res.status(200).json(newCollection);
   } catch (error) {
     return res.status(500).json({ error: error });
   }
@@ -74,8 +104,9 @@ todoApp.post("/collection/:id", authOwner, async (req, res) => {
 
 //update collection name
 todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
-  let { id, collection_id } = req.params;
+  let { collection_id } = req.params;
   let { name } = req.body;
+  if (!name) return res.status(400).json({ error: "please enter collection name" });
 
   try {
     let todo = await Todo.findOne({ user: req.user.id });
@@ -90,7 +121,7 @@ todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
     if (name) collection.name = name;
 
     await todo.save();
-    res.status(200).json(todo);
+    res.status(200).json(collection);
   } catch (error) {
     return res.status(500).json({ error: error });
   }
@@ -99,9 +130,9 @@ todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
 //DELETE  COLLECTION
 //@access private
 
-//add new collection with just the name but not todo
+//delete collection
 todoApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => {
-  let { id, collection_id } = req.params;
+  let { collection_id } = req.params;
 
   try {
     let todo = await Todo.findOne({ user: req.user.id });
@@ -114,7 +145,7 @@ todoApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => 
     collections.splice(removeIndex, 1);
 
     await todo.save();
-    res.status(200).json(todo);
+    res.status(200).json(collection_id);
   } catch (error) {
     return res.status(500).json({ error: error });
   }
@@ -125,9 +156,10 @@ todoApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => 
 
 //add new todo
 todoApp.post("/todo/:id/:collection_id", authOwner, async (req, res) => {
-  let { id, collection_id } = req.params;
+  let { collection_id } = req.params;
   let { todoItem } = req.body;
   if (!todoItem) return res.status(400).json({ error: "please enter todo" });
+
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     if (!todo) return res.status(400).json({ error: "there is no such todos" });
@@ -140,7 +172,7 @@ todoApp.post("/todo/:id/:collection_id", authOwner, async (req, res) => {
     if (!collection) return res.status(400).json({ error: "there is no such collection" });
 
     //we have to search if there is the same todo
-    const todos = collection.todos;
+    let todos = collection.todos;
 
     let todoIndex = todos.map((todo) => todo.content).indexOf(todoItem);
     if (todoIndex !== -1) {
@@ -152,10 +184,42 @@ todoApp.post("/todo/:id/:collection_id", authOwner, async (req, res) => {
       content: todoItem,
     });
     await todo.save();
+    const newTodo = todos.find((todo) => todo.content === todoItem);
+    res.status(200).json(newTodo);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
-    //we have to enable auto delete 24 hour job
-    deleteTodosJob(req.user.id);
-    res.status(200).json(todo);
+//PUT TODO
+//@access private
+
+//put a todo done/undone
+todoApp.put("/todo/done/:id/:collection_id/:todo_id", authOwner, async (req, res) => {
+  let { collection_id, todo_id } = req.params;
+
+  try {
+    const todo = await Todo.findOne({ user: req.user.id });
+    if (!todo) return res.status(400).json({ error: "there is no such todos" });
+    //get collections
+    let collections = todo.collections;
+
+    //find the collection that I want to push todo
+    let collection = collections.find((collection) => collection._id.toString() === collection_id);
+
+    if (!collection) return res.status(400).json({ error: "there is no such collection" });
+
+    //we have to search if there is the same todo
+    let todos = collection.todos;
+    let todoIndex = todos.map((todo) => todo._id.toString()).indexOf(todo_id);
+    if (todoIndex === -1) {
+      return res.status(400).json({ error: "There is no todo with this content" });
+    }
+    //push new todo to the collection
+    todos[todoIndex].done = !todos[todoIndex].done;
+    await todo.save();
+
+    res.status(200).json(todos[todoIndex]);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -181,7 +245,7 @@ todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
     if (!collection) return res.status(400).json({ error: "there is no such collection" });
 
     //we have to search if there is the same todo
-    const todos = collection.todos;
+    let todos = collection.todos;
     let todoIndex = todos.map((todo) => todo.content).indexOf(oldTodo);
     if (todoIndex === -1) {
       return res.status(400).json({ error: "There is no todo with this content" });
@@ -189,7 +253,7 @@ todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
     //push new todo to the collection
     todos[todoIndex].content = todoItem;
     await todo.save();
-    res.status(200).json(todo);
+    res.status(200).json(todos[todoIndex]);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -199,10 +263,9 @@ todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
 //@access private
 
 //delete a todo
-todoApp.delete("/todo/:id/:collection_id", authOwner, async (req, res) => {
-  let { id, collection_id } = req.params;
-  let { oldTodo } = req.body;
-  if (!oldTodo) return res.status(400).json({ error: "please enter old todo" });
+todoApp.delete("/todo/:id/:collection_id/:todo_id", authOwner, async (req, res) => {
+  let { collection_id, todo_id } = req.params;
+
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     if (!todo) return res.status(400).json({ error: "there is no such todos" });
@@ -215,15 +278,15 @@ todoApp.delete("/todo/:id/:collection_id", authOwner, async (req, res) => {
     if (!collection) return res.status(400).json({ error: "there is no such collection" });
 
     //we have to search if there is todo with oldTodo content
-    const todos = collection.todos;
-    let todoIndex = todos.map((todo) => todo.content).indexOf(oldTodo);
+    let todos = collection.todos;
+    let todoIndex = todos.map((todo) => todo._id.toString()).indexOf(todo_id);
     if (todoIndex === -1) {
       return res.status(400).json({ error: "There is no todo with this content" });
     }
     //splice todo from todo array
     todos.splice(todoIndex, 1);
     await todo.save();
-    res.status(200).json(todo);
+    res.status(200).json(todo_id);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

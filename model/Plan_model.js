@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const TodoSchema = new mongoose.Schema(
+const PlanSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -13,7 +13,7 @@ const TodoSchema = new mongoose.Schema(
           unique: [true, "name must be unique"],
           required: [true, "name is required"],
         },
-        todos: [
+        plans: [
           {
             content: {
               type: String,
@@ -39,7 +39,7 @@ const TodoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-TodoSchema.post("validate", function (error, doc, next) {
+PlanSchema.post("validate", function (error, doc, next) {
   if (error) {
     const errors = {};
     for (const field in error.errors) {
@@ -51,6 +51,6 @@ TodoSchema.post("validate", function (error, doc, next) {
   }
 });
 
-const Todo = new mongoose.model("todo", TodoSchema);
+const Plan = new mongoose.model("plan", PlanSchema);
 
-export default Todo;
+export default Plan;

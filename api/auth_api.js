@@ -3,6 +3,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import Todo from "../model/Todo_model.js";
+import Plan from "../model/Plan_model.js";
 const authApp = express.Router();
 
 //POST REGISTER
@@ -11,15 +12,21 @@ const authApp = express.Router();
 authApp.post("/", async (req, res) => {
   try {
     let user = await User.findOne({ email: req.body.email });
-    if (user) return res.status(400).json({ error: "user is exist" });
+    if (user)
+      return res.status(400).json({
+        error: {
+          other: "user is exist",
+        },
+      });
     user = new User(req.body);
     await user.save();
     const salt = await bcrypt.genSalt(16);
     user.password = await bcrypt.hash(user.password, salt);
     await user.save();
-    res.status(200).json(user);
+    let { password, _id, role, ...other } = user._doc;
+    res.status(200).json(other);
   } catch (error) {
-    return res.status(400).json({ error: error });
+    return res.status(500).json({ error: error });
   }
 });
 
@@ -29,13 +36,27 @@ authApp.post("/", async (req, res) => {
 authApp.post("/login", async (req, res) => {
   let { email, password } = req.body;
   try {
-    if (!email || !password) return res.status(400).json({ error: "please enter data" });
+    if (!email || !password)
+      return res.status(400).json({
+        error: {
+          other: "please enter data",
+        },
+      });
     let user = await User.findOne({ email: email });
-    if (!user) return res.status(400).json({ error: "user does not exist" });
-    console.log(user);
+    if (!user)
+      return res.status(400).json({
+        error: {
+          other: "wrong data",
+        },
+      });
     let isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) return res.status(400).json({ error: "wrong data" });
+    if (!isMatch)
+      return res.status(400).json({
+        error: {
+          other: "wrong data",
+        },
+      });
     const payload = {
       user: {
         username: user.username,
@@ -63,12 +84,28 @@ authApp.post("/login", async (req, res) => {
       await UserTodo.save();
     }
 
+    let UserPlan = await Plan.findOne({ user: user._id });
+    if (!UserPlan) {
+      UserPlan = new Plan({
+        user: user.id,
+        collections: [
+          {
+            name: "home",
+            plans: [],
+          },
+        ],
+      });
+      await UserPlan.save();
+    }
+
+    user = await User.findOne({ email: email }).select("-password -_id -role");
+
     res.status(200).json({
-      user: user,
+      data: user,
       token: token,
     });
   } catch (error) {
-    return res.status(400).json({ error: error });
+    return res.status(400).json(error.message);
   }
 });
 
