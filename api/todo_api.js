@@ -4,6 +4,7 @@ import auth from "../middleware/auth.js";
 import authOwner from "../middleware/authOwner.js";
 import authAdmin from "../middleware/authAdmin.js";
 import deleteTodosJob from "../cron.js";
+import Result from "../model/Result_model.js";
 
 const todoApp = express.Router();
 
@@ -67,7 +68,15 @@ todoApp.get("/get/me/:collection_id", auth, async (req, res) => {
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     const collections = todo.collections;
-    const theTodo = collections.find((collection) => collection._id.toString() === req.params.collection_id);
+    let theTodo = collections.find((collection) => collection._id.toString() === req.params.collection_id);
+    if (theTodo) {
+      theTodo.todos = theTodo.todos.sort((a, b) => {
+        return a.done - b.done;
+      });
+    }
+
+    console.log(theTodo);
+
     res.status(200).json(theTodo);
   } catch (error) {
     return res.status(500).json({ error: error });
@@ -217,6 +226,19 @@ todoApp.put("/todo/done/:id/:collection_id/:todo_id", authOwner, async (req, res
     }
     //push new todo to the collection
     todos[todoIndex].done = !todos[todoIndex].done;
+    const currentDate = new Date();
+    const options = { weekday: "long", timeZone: "Asia/Baghdad" };
+    const currentDay = currentDate.toLocaleString("en-US", options);
+    const result = await Result.findOne({ user: req.user.id });
+    const week = result.completedTodo;
+    const theDay = week.find((day) => day.day === currentDay);
+
+    if (todos[todoIndex].done) {
+      theDay.count++;
+    } else {
+      theDay.count--;
+    }
+    await result.save();
     await todo.save();
 
     res.status(200).json(todos[todoIndex]);

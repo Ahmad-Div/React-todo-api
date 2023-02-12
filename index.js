@@ -23,12 +23,14 @@ app.use("/api/auth", authApp);
 app.use("/api/user", userApp);
 app.use("/api/todo", todoApp);
 app.use("/api/plan", planApp);
+app.use("/api/result", resultApp);
 connectDb();
 
 // Import the functions you need from the SDKs you need
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { initializeApp } from "firebase/app";
 import authOwner from "./middleware/authOwner.js";
+import resultApp from "./api/result_api.js";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 

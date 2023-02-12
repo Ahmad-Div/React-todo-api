@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import Todo from "../model/Todo_model.js";
 import Plan from "../model/Plan_model.js";
+import Result from "../model/Result_model.js";
 const authApp = express.Router();
 
 //POST REGISTER
@@ -96,6 +97,74 @@ authApp.post("/login", async (req, res) => {
         ],
       });
       await UserPlan.save();
+    }
+
+    let userResult = await Result.findOne({ user: user._id });
+    if (!userResult) {
+      userResult = new Result({
+        user: user._id,
+        completedTodo: [
+          {
+            day: "Monday",
+            count: 0,
+          },
+          {
+            day: "Thursday",
+            count: 0,
+          },
+          {
+            day: "Wednesday",
+            count: 0,
+          },
+          {
+            day: "Tuesday",
+            count: 0,
+          },
+          {
+            day: "Friday",
+            count: 0,
+          },
+          {
+            day: "Saturday",
+            count: 0,
+          },
+          {
+            day: "Sunday",
+            count: 0,
+          },
+        ],
+        completedPlan: [
+          {
+            day: "Monday",
+            count: 0,
+          },
+          {
+            day: "Thursday",
+            count: 0,
+          },
+          {
+            day: "Wednesday",
+            count: 0,
+          },
+          {
+            day: "Tuesday",
+            count: 0,
+          },
+          {
+            day: "Friday",
+            count: 0,
+          },
+          {
+            day: "Saturday",
+            count: 0,
+          },
+          {
+            day: "Sunday",
+            count: 0,
+          },
+        ],
+      });
+      await userResult.save();
     }
 
     user = await User.findOne({ email: email }).select("-password -_id -role");

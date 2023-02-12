@@ -3,6 +3,7 @@ import express from "express";
 import auth from "../middleware/auth.js";
 import authOwner from "../middleware/authOwner.js";
 import authAdmin from "../middleware/authAdmin.js";
+import Result from "../model/Result_model.js";
 
 const planApp = express.Router();
 
@@ -67,6 +68,11 @@ planApp.get("/get/me/:collection_id", auth, async (req, res) => {
     const plan = await Plan.findOne({ user: req.user.id });
     const collections = plan.collections;
     const thePlan = collections.find((collection) => collection._id.toString() === req.params.collection_id);
+    if (thePlan) {
+      thePlan.plans = thePlan.plans.sort((a, b) => {
+        return a.done - b.done;
+      });
+    }
     res.status(200).json(thePlan);
   } catch (error) {
     return res.status(500).json({ error: error });
@@ -92,7 +98,6 @@ planApp.post("/collection/:id", authOwner, async (req, res) => {
     });
     await plan.save();
     const newCollection = collections.find((collection) => collection.name === req.body.name);
-    res.status(200).json(newCollection);
     res.status(200).json(newCollection);
   } catch (error) {
     return res.status(500).json({ error: error });
@@ -219,6 +224,20 @@ planApp.put("/plan/done/:id/:collection_id/:plan_id", authOwner, async (req, res
     }
     //push new Plan to the collection
     plans[planIndex].done = !plans[planIndex].done;
+
+    const currentDate = new Date();
+    const options = { weekday: "long", timeZone: "Asia/Baghdad" };
+    const currentDay = currentDate.toLocaleString("en-US", options);
+    const result = await Result.findOne({ user: req.user.id });
+    const week = result.completedTodo;
+    const theDay = week.find((day) => day.day === currentDay);
+
+    if (plans[planIndex].done) {
+      theDay.count++;
+    } else {
+      theDay.count--;
+    }
+    await result.save();
     await plan.save();
     res.status(200).json(plans[planIndex]);
   } catch (error) {
