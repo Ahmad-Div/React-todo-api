@@ -75,8 +75,6 @@ todoApp.get("/get/me/:collection_id", auth, async (req, res) => {
       });
     }
 
-    console.log(theTodo);
-
     res.status(200).json(theTodo);
   } catch (error) {
     return res.status(500).json({ error: error });
