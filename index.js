@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 app.use(
   cors({
-    origin: process.env.REACT_LOCAL_HOST,
+    origin: process.env.REACT_HOST,
     optionsSuccessStatus: 200,
   })
 );
