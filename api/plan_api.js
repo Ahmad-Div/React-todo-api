@@ -49,7 +49,7 @@ planApp.get("/get/me", auth, async (req, res) => {
 //@access private
 
 //get one todo of a collection
-planApp.get("/get/me/collections", auth, async (req, res) => {
+planApp.get("/get/me/collections/:id", auth, async (req, res) => {
   try {
     const plan = await Plan.findOne({ user: req.user.id });
     const collections = plan.collections;
@@ -63,7 +63,7 @@ planApp.get("/get/me/collections", auth, async (req, res) => {
 //@access private
 
 //get one todo of a collection
-planApp.get("/get/me/:collection_id", auth, async (req, res) => {
+planApp.get("/get/me/:id/:collection_id", auth, async (req, res) => {
   try {
     const plan = await Plan.findOne({ user: req.user.id });
     const collections = plan.collections;

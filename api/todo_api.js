@@ -50,7 +50,7 @@ todoApp.get("/get/me", auth, async (req, res) => {
 //@access private
 
 //get one todo of a collection
-todoApp.get("/get/me/collections", auth, async (req, res) => {
+todoApp.get("/get/me/collections/:id", auth, async (req, res) => {
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     const collections = todo.collections;
@@ -64,7 +64,7 @@ todoApp.get("/get/me/collections", auth, async (req, res) => {
 //@access private
 
 //get one todo of a collection
-todoApp.get("/get/me/:collection_id", auth, async (req, res) => {
+todoApp.get("/get/me/:id/:collection_id", auth, async (req, res) => {
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     const collections = todo.collections;
