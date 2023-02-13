@@ -1,6 +1,7 @@
 import User from "../model/User_model.js";
 import jwt from "jsonwebtoken";
-
+import dotenv from "dotenv";
+dotenv.config();
 const authOwner = async (req, res, next) => {
   const token = req.header("x-auth-token");
   if (!token) return res.status(401).json({ error: "not authorized" });

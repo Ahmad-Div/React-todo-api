@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 import Todo from "../model/Todo_model.js";
 import Plan from "../model/Plan_model.js";
 import Result from "../model/Result_model.js";
+import dotenv from "dotenv";
+dotenv.config();
 const authApp = express.Router();
 
 //POST REGISTER
