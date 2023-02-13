@@ -10,20 +10,15 @@ import multer from "multer";
 import path from "path";
 dotenv.config();
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: process.env.REACT_HOST,
     optionsSuccessStatus: 200,
   })
 );
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", process.env.REACT_HOST);
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", authApp);
 app.use("/api/user", userApp);
