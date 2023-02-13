@@ -47,6 +47,10 @@ app.use("/api/plan", planApp);
 app.use("/api/result", resultApp);
 connectDb();
 
+app.listen(process.env.PORT, () => {
+  console.log("server run");
+});
+
 const uploader = multer({ storage: multer.memoryStorage() });
 const storage = getStorage();
 
@@ -76,8 +80,4 @@ app.post("/api/upload/userImage/:id", authOwner, uploader.single("userImageUploa
       });
     }
   );
-});
-
-app.listen(process.env.PORT, () => {
-  console.log("server run");
 });
