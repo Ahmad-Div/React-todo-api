@@ -10,7 +10,6 @@ const PlanSchema = new mongoose.Schema(
       {
         name: {
           type: String,
-          unique: [true, "name must be unique"],
           required: [true, "name is required"],
         },
         plans: [
