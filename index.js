@@ -35,7 +35,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "https://kurd-todo.netlify.app",
+    origin: process.env.REACT_HOST,
     optionsSuccessStatus: 200,
   })
 );
