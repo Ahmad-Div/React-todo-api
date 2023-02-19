@@ -13,6 +13,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/
 import { initializeApp } from "firebase/app";
 import authOwner from "./middleware/authOwner.js";
 import resultApp from "./api/result_api.js";
+
 dotenv.config();
 const app = express();
 
@@ -35,7 +36,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: process.env.REACT_HOST,
+    origin: process.env.REACT_LOCAL_HOST,
     optionsSuccessStatus: 200,
   })
 );

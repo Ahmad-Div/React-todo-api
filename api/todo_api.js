@@ -87,16 +87,24 @@ todoApp.get("/get/me/:id/:collection_id", auth, async (req, res) => {
 //add new collection with just the name but not todo
 todoApp.post("/collection/:id", authOwner, async (req, res) => {
   if (!req.body.name) return res.status(400).json({ error: "please enter collection name" });
+  if (!req.body.icon) return res.status(400).json({ error: "please select collection icon" });
+  console.log(req.body);
   try {
     let todo = await Todo.findOne({ user: req.user.id });
     let collections = todo.collections;
     //if collection name is exist
-    if (collections.some((collection) => collection.name) === req.body.name) {
+    let collectionNames = [];
+
+    collections.forEach((collection) => {
+      collectionNames.push(collection.name);
+    });
+    if (collectionNames.includes(req.body.name)) {
       return res.status(400).json({ error: "There is collection with this name" });
     }
     //push new collection
     collections.push({
       name: req.body.name,
+      icon: req.body.icon,
     });
     await todo.save();
     const newCollection = collections.find((collection) => collection.name === req.body.name);
@@ -112,8 +120,9 @@ todoApp.post("/collection/:id", authOwner, async (req, res) => {
 //update collection name
 todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
-  let { name } = req.body;
+  let { name, icon } = req.body;
   if (!name) return res.status(400).json({ error: "please enter collection name" });
+  if (!icon) return res.status(400).json({ error: "please select your icon" });
 
   try {
     let todo = await Todo.findOne({ user: req.user.id });
@@ -126,6 +135,30 @@ todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
     //change collection name
     //if he provide new name
     if (name) collection.name = name;
+    if (icon) collection.icon = icon;
+
+    await todo.save();
+    res.status(200).json(collection);
+  } catch (error) {
+    return res.status(500).json({ error: error });
+  }
+});
+
+//update collection favorite
+todoApp.put("/collection/favorite/:id/:collection_id", authOwner, async (req, res) => {
+  let { collection_id } = req.params;
+
+  try {
+    let todo = await Todo.findOne({ user: req.user.id });
+    let collections = todo.collections;
+    //find collection
+
+    let collection = collections.find((collection) => collection._id.toString() === collection_id);
+    //if there is no such collection
+    if (!collection) return res.status(400).json({ error: "there is no such collection" });
+    //change collection name
+    //if he provide new name
+    collection.isFav = !collection.isFav;
 
     await todo.save();
     res.status(200).json(collection);
@@ -138,7 +171,7 @@ todoApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
 //@access private
 
 //delete collection
-todoApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => {
+todoApp.delete("/collection/one/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
 
   try {
@@ -158,14 +191,30 @@ todoApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => 
   }
 });
 
+//DELETE ALL COLLECTION
+//@access private
+
+//delete collection
+todoApp.delete("/collection/all/:id", authOwner, async (req, res) => {
+  try {
+    let todo = await Todo.findOne({ user: req.user.id });
+    todo.collections = [];
+    await todo.save();
+    res.status(200).json(todo.collections);
+  } catch (error) {
+    return res.status(500).json(error.message);
+  }
+});
+
 //POST NEW TODO
 //@access private
 
 //add new todo
 todoApp.post("/todo/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
-  let { todoItem } = req.body;
+  let { todoItem, icon } = req.body;
   if (!todoItem) return res.status(400).json({ error: "please enter todo" });
+  if (!icon) return res.status(400).json({ error: "please select Icon" });
 
   try {
     const todo = await Todo.findOne({ user: req.user.id });
@@ -189,6 +238,7 @@ todoApp.post("/todo/:id/:collection_id", authOwner, async (req, res) => {
     //push new todo to the collection
     todos.push({
       content: todoItem,
+      icon: icon,
     });
     await todo.save();
     const newTodo = todos.find((todo) => todo.content === todoItem);
@@ -251,8 +301,10 @@ todoApp.put("/todo/done/:id/:collection_id/:todo_id", authOwner, async (req, res
 //put a todo
 todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
   let { id, collection_id } = req.params;
-  let { todoItem, oldTodo } = req.body;
+  let { todoItem, oldTodo, icon } = req.body;
   if (!oldTodo) return res.status(400).json({ error: "please enter old todo" });
+  if (!icon) return res.status(400).json({ error: "please select your icon" });
+
   try {
     const todo = await Todo.findOne({ user: req.user.id });
     if (!todo) return res.status(400).json({ error: "there is no such todos" });
@@ -272,6 +324,7 @@ todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
     }
     //push new todo to the collection
     todos[todoIndex].content = todoItem;
+    todos[todoIndex].icon = icon;
     await todo.save();
     res.status(200).json(todos[todoIndex]);
   } catch (error) {
@@ -283,7 +336,7 @@ todoApp.put("/todo/:id/:collection_id", authOwner, async (req, res) => {
 //@access private
 
 //delete a todo
-todoApp.delete("/todo/:id/:collection_id/:todo_id", authOwner, async (req, res) => {
+todoApp.delete("/todo/one/:id/:collection_id/:todo_id", authOwner, async (req, res) => {
   let { collection_id, todo_id } = req.params;
 
   try {
@@ -309,6 +362,30 @@ todoApp.delete("/todo/:id/:collection_id/:todo_id", authOwner, async (req, res) 
     res.status(200).json(todo_id);
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  }
+});
+
+//DELETE ALL TODO
+//@access private
+
+//delete all todo
+todoApp.delete("/todo/all/:id/:collection_id", authOwner, async (req, res) => {
+  try {
+    let todo = await Todo.findOne({ user: req.user.id });
+    let collections = todo.collections;
+    let theCollection = [];
+    collections.forEach((collection) => {
+      if (collection._id.toString() === req.params.collection_id) {
+        collection.todos = [];
+        theCollection = collection;
+        return;
+      }
+    });
+
+    await todo.save();
+    res.status(200).json(theCollection.todos);
+  } catch (error) {
+    return res.status(500).json(error.message);
   }
 });
 

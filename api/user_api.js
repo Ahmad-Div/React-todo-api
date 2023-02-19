@@ -5,6 +5,7 @@ import authOwner from "../middleware/authOwner.js";
 import authAdmin from "../middleware/authAdmin.js";
 import Todo from "../model/Todo_model.js";
 import Plan from "../model/Plan_model.js";
+import Result from "../model/Result_model.js";
 
 const userApp = express.Router();
 
@@ -82,6 +83,21 @@ userApp.put("/:id", authOwner, async (req, res) => {
   }
 });
 
+//PUT ONE USER
+//@access privet
+
+userApp.put("/notification/:id", authOwner, async (req, res) => {
+  try {
+    let user = await User.findById(req.user.id);
+    user.notification = !user.notification;
+    await user.save();
+    let { password, role, ...other } = user._doc;
+    res.status(200).json(other);
+  } catch (error) {
+    return res.status(500).json({ error: error });
+  }
+});
+
 //DELETE ONE USER
 //@access privet
 
@@ -90,6 +106,7 @@ userApp.delete("/:id", authOwner, async (req, res) => {
     await User.findByIdAndDelete(req.user.id);
     await Todo.findOneAndDelete({ user: req.user.id });
     await Plan.findOneAndDelete({ user: req.user.id });
+    await Result.findOneAndDelete({ user: req.user.id });
     res.status(200).json({ message: "deleted" });
   } catch (error) {
     return res.status(500).json({ error: error });

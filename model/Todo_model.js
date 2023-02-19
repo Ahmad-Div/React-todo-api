@@ -12,6 +12,14 @@ const TodoSchema = new mongoose.Schema(
           type: String,
           required: [true, "name is required"],
         },
+        isFav: {
+          type: Boolean,
+          default: false,
+        },
+        icon: {
+          type: String,
+          required: true,
+        },
         todos: [
           {
             content: {
@@ -21,6 +29,10 @@ const TodoSchema = new mongoose.Schema(
             done: {
               type: Boolean,
               default: false,
+            },
+            icon: {
+              type: String,
+              required: true,
             },
             timestamp: {
               type: Date,

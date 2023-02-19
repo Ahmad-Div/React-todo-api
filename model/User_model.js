@@ -22,6 +22,10 @@ const UserSchema = new mongoose.Schema(
       min: [6, "maximum character is 6"],
       max: [16, "maximum character is 16"],
     },
+    isAuthenticated: {
+      type: Boolean,
+      default: false,
+    },
     role: {
       type: String,
       default: "user",
@@ -29,6 +33,10 @@ const UserSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "",
+    },
+    notification: {
+      type: Boolean,
+      default: true,
     },
   },
   {

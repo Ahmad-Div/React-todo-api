@@ -85,6 +85,7 @@ planApp.get("/get/me/:id/:collection_id", auth, async (req, res) => {
 //add new collection with just the name but not Plan
 planApp.post("/collection/:id", authOwner, async (req, res) => {
   if (!req.body.name) return res.status(400).json({ error: "please enter collection name" });
+  if (!req.body.icon) return res.status(400).json({ error: "please enter collection name" });
   try {
     let plan = await Plan.findOne({ user: req.user.id });
     let collections = plan.collections;
@@ -95,6 +96,7 @@ planApp.post("/collection/:id", authOwner, async (req, res) => {
     //push new collection
     collections.push({
       name: req.body.name,
+      icon: req.body.icon,
     });
     await plan.save();
     const newCollection = collections.find((collection) => collection.name === req.body.name);
@@ -110,8 +112,9 @@ planApp.post("/collection/:id", authOwner, async (req, res) => {
 //update collection name
 planApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
-  let { name } = req.body;
+  let { name, icon } = req.body;
   if (!name) return res.status(400).json({ error: "please enter collection name" });
+  if (!icon) return res.status(400).json({ error: "please select collection icon" });
 
   try {
     let plan = await Plan.findOne({ user: req.user.id });
@@ -124,6 +127,7 @@ planApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
     //change collection name
     //if he provide new name
     if (name) collection.name = name;
+    if (icon) collection.icon = icon;
 
     await plan.save();
     res.status(200).json(collection);
@@ -132,11 +136,34 @@ planApp.put("/collection/:id/:collection_id", authOwner, async (req, res) => {
   }
 });
 
+//update collection favorite
+planApp.put("/collection/favorite/:id/:collection_id", authOwner, async (req, res) => {
+  let { collection_id } = req.params;
+
+  try {
+    let plan = await Plan.findOne({ user: req.user.id });
+    let collections = plan.collections;
+    //find collection
+
+    let collection = collections.find((collection) => collection._id.toString() === collection_id);
+    //if there is no such collection
+    if (!collection) return res.status(400).json({ error: "there is no such collection" });
+    //change collection name
+    //if he provide new name
+    collection.isFav = !collection.isFav;
+
+    await plan.save();
+    res.status(200).json(collection);
+  } catch (error) {
+    return res.status(500).json(error.message);
+  }
+});
+
 //DELETE  COLLECTION
 //@access private
 
-//add new collection with just the name but not Plan
-planApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => {
+//delete collection
+planApp.delete("/collection/one/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
 
   try {
@@ -156,13 +183,28 @@ planApp.delete("/collection/:id/:collection_id", authOwner, async (req, res) => 
   }
 });
 
+//DELETE ALL COLLECTION
+//@access private
+
+//delete collections
+planApp.delete("/collection/all/:id", authOwner, async (req, res) => {
+  try {
+    let plan = await Plan.findOne({ user: req.user.id });
+    plan.collections = [];
+    await plan.save();
+    res.status(200).json(plan.collections);
+  } catch (error) {
+    return res.status(500).json(error.message);
+  }
+});
+
 //POST NEW Plan
 //@access private
 
 //add new Plan
 planApp.post("/plan/:id/:collection_id", authOwner, async (req, res) => {
   let { collection_id } = req.params;
-  let { planItem } = req.body;
+  let { planItem, icon } = req.body;
   if (!planItem) return res.status(400).json({ error: "please enter Plan" });
   try {
     const plan = await Plan.findOne({ user: req.user.id });
@@ -186,6 +228,7 @@ planApp.post("/plan/:id/:collection_id", authOwner, async (req, res) => {
     //push new Plan to the collection
     plans.push({
       content: planItem,
+      icon: icon,
     });
     await plan.save();
 
@@ -245,10 +288,10 @@ planApp.put("/plan/done/:id/:collection_id/:plan_id", authOwner, async (req, res
   }
 });
 
-//put a Plan done/undone
+//put a Plan
 planApp.put("/plan/:id/:collection_id", authOwner, async (req, res) => {
   let { id, collection_id } = req.params;
-  let { planItem, oldPlan } = req.body;
+  let { planItem, oldPlan, icon } = req.body;
   if (!oldPlan) return res.status(400).json({ error: "please enter old Plan" });
   try {
     const plan = await Plan.findOne({ user: req.user.id });
@@ -269,6 +312,7 @@ planApp.put("/plan/:id/:collection_id", authOwner, async (req, res) => {
     }
     //push new Plan to the collection
     plans[planIndex].content = planItem;
+    plans[planIndex].icon = icon;
     await plan.save();
     res.status(200).json(plans[planIndex]);
   } catch (error) {
@@ -280,7 +324,7 @@ planApp.put("/plan/:id/:collection_id", authOwner, async (req, res) => {
 //@access private
 
 //delete a Plan
-planApp.delete("/Plan/:id/:collection_id/:plan_id", authOwner, async (req, res) => {
+planApp.delete("/Plan/one/:id/:collection_id/:plan_id", authOwner, async (req, res) => {
   let { plan_id, collection_id } = req.params;
 
   try {
@@ -306,6 +350,30 @@ planApp.delete("/Plan/:id/:collection_id/:plan_id", authOwner, async (req, res) 
     res.status(200).json(plan_id);
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  }
+});
+
+//DELETE ALL PLAN
+//@access private
+
+//delete all plan
+planApp.delete("/plan/all/:id/:collection_id", authOwner, async (req, res) => {
+  try {
+    let plan = await Plan.findOne({ user: req.user.id });
+    let collections = plan.collections;
+    let theCollection = [];
+    collections.forEach((collection) => {
+      if (collection._id.toString() === req.params.collection_id) {
+        collection.plans = [];
+        theCollection = collection;
+        return;
+      }
+    });
+
+    await plan.save();
+    res.status(200).json(theCollection.plans);
+  } catch (error) {
+    return res.status(500).json(error.message);
   }
 });
 

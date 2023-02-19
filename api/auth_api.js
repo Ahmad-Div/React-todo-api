@@ -6,6 +6,7 @@ import Todo from "../model/Todo_model.js";
 import Plan from "../model/Plan_model.js";
 import Result from "../model/Result_model.js";
 import dotenv from "dotenv";
+import { getVerifyCode, sendCode } from "../nodemailer.js";
 dotenv.config();
 const authApp = express.Router();
 
@@ -33,6 +34,9 @@ authApp.post("/", async (req, res) => {
   }
 });
 
+//POST GOOGLE REGISTER
+//@access public
+
 //POST LOGIN
 //@access public
 
@@ -45,6 +49,7 @@ authApp.post("/login", async (req, res) => {
           other: "please enter data",
         },
       });
+
     let user = await User.findOne({ email: email });
     if (!user)
       return res.status(400).json({
@@ -80,6 +85,7 @@ authApp.post("/login", async (req, res) => {
         collections: [
           {
             name: "home",
+            icon: "fa-house",
             todos: [],
           },
         ],
@@ -94,6 +100,7 @@ authApp.post("/login", async (req, res) => {
         collections: [
           {
             name: "home",
+            icon: "fa-house",
             plans: [],
           },
         ],
@@ -169,7 +176,7 @@ authApp.post("/login", async (req, res) => {
       await userResult.save();
     }
 
-    user = await User.findOne({ email: email }).select("-password -_id -role");
+    user = await User.findOne({ email: email }).select("-password");
 
     res.status(200).json({
       data: user,
@@ -178,6 +185,165 @@ authApp.post("/login", async (req, res) => {
   } catch (error) {
     return res.status(400).json(error.message);
   }
+});
+
+//POST AUTH EMAIL
+let email = "";
+authApp.post("/authentication", async (req, res) => {
+  if (!req.body.email)
+    return res.status(400).json({
+      error: {
+        other: "please enter your email",
+      },
+    });
+  const user = await User.findOne({ email: req.body.email });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "wrong email",
+      },
+    });
+  email = user.email;
+  sendCode(req.body.email);
+  res.status(200).json({ message: "code sent" });
+});
+
+//POST RESEND EMAIL
+
+authApp.post("/re_send", async (req, res) => {
+  const user = await User.findOne({ email: email });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "wrong email",
+      },
+    });
+  sendCode(user.email);
+  res.status(200).json({ message: "code sent" });
+});
+
+//POST CODE
+authApp.post("/code", async (req, res) => {
+  if (!req.body.code)
+    return res.status(400).json({
+      error: {
+        other: "please enter your code",
+      },
+    });
+  if (req.body.code !== getVerifyCode())
+    return res.status(400).json({
+      error: {
+        other: "wrong code",
+      },
+    });
+
+  //authenticate user
+  let user = await User.findOne({ email: email });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "the email was wrong",
+      },
+    });
+
+  user.isAuthenticated = true;
+  await user.save();
+  email = "";
+  return res.status(200).json("user authenticated");
+});
+
+//POST FORGET PASSWORD
+let passwordEmail = "";
+authApp.post("/password", async (req, res) => {
+  if (!req.body.email)
+    return res.status(400).json({
+      error: {
+        other: "please enter your email",
+      },
+    });
+  const user = await User.findOne({ email: req.body.email });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "wrong email",
+      },
+    });
+  passwordEmail = user.email;
+  sendCode(req.body.email);
+  res.status(200).json({ message: "code sent" });
+});
+
+//POST RESEND EMAIL PASSWORD FORGET
+
+authApp.post("/password_re_send", async (req, res) => {
+  const user = await User.findOne({ email: passwordEmail });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "wrong email",
+      },
+    });
+  sendCode(user.email);
+  res.status(200).json({ message: "code sent" });
+});
+
+//POST CODE FORGET PASSWORD
+authApp.post("/password_code", async (req, res) => {
+  if (!req.body.code)
+    return res.status(400).json({
+      error: {
+        other: "please enter your code",
+      },
+    });
+  if (req.body.code !== getVerifyCode())
+    return res.status(400).json({
+      error: {
+        other: "wrong code",
+      },
+    });
+
+  //authenticate user
+  let user = await User.findOne({ email: passwordEmail });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "the email was wrong",
+      },
+    });
+
+  user.isAuthenticated = true;
+  await user.save();
+  return res.status(200).json("user authenticated");
+});
+
+authApp.post("/change_password", async (req, res) => {
+  if (!req.body.password)
+    return res.status(400).json({
+      error: {
+        other: "please enter your new password",
+      },
+    });
+  let user = await User.findOne({ email: passwordEmail });
+  if (!user)
+    return res.status(400).json({
+      error: {
+        other: "the email was wrong",
+      },
+    });
+  const isMatch = await bcrypt.compare(req.body.password, user.password);
+  if (isMatch)
+    return res.status(400).json({
+      error: {
+        other: "you can't use the same password",
+      },
+    });
+  const salt = await bcrypt.genSalt(16);
+  req.body.password = await bcrypt.hash(req.body.password, salt);
+  user.password = req.body.password;
+  await user.save();
+  passwordEmail = "";
+
+  return res.status(200).json({ message: "password changed" });
 });
 
 export default authApp;
