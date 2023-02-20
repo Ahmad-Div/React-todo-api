@@ -50,7 +50,9 @@ authApp.post("/login", async (req, res) => {
         },
       });
 
-    let user = await User.findOne({ email: email });
+    let user = await User.findOne({
+      $or: [{ email: email }, { username: email }],
+    });
     if (!user)
       return res.status(400).json({
         error: {
@@ -176,7 +178,9 @@ authApp.post("/login", async (req, res) => {
       await userResult.save();
     }
 
-    user = await User.findOne({ email: email }).select("-password");
+    user = await User.findOne({
+      $or: [{ email: email }, { username: email }],
+    }).select("-password");
 
     res.status(200).json({
       data: user,
